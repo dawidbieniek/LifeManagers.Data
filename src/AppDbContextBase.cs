@@ -11,7 +11,7 @@ public class AppDbContextBase(DbContextOptions options)
     : DbContext(options)
 #endif
 {
-    public async Task PerformNecessaryMigrations()
+    public async Task PerformNecessaryMigrationsAsync()
     {
         await Database.MigrateAsync();
     }
