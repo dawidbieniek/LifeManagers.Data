@@ -1,0 +1,48 @@
+name: Publish NuGet Package
+
+on:
+  push:
+    branches:
+      - main
+env:
+  CONFIG: Release
+  PROJ_PATH: src/LifeManagers.Data.csproj
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest    
+    steps:    
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:         
+        dotnet-version: '9'
+        dotnet-quality: 'preview'
+
+    - name: Add NuGet source
+      run: |
+        dotnet nuget add source ${{ secrets.NUGET_SERVER_URL }} \
+          -n ${{ secrets.NUGET_SERVER_NAME }} \
+          --allow-insecure-connections \
+          --store-password-in-clear-text
+
+    - name: Build
+      run: |
+        dotnet nuget list source
+        # Build project
+        dotnet build --configuration ${{ env.CONFIG }} ${{ env.PROJ_PATH }}
+        # Pack the project
+        dotnet pack -c ${{ env.CONFIG }} -o ./artifacts ${{ env.PROJ_PATH }}
+        
+        # Push to private NuGet feed
+        dotnet nuget push ./artifacts/*.nupkg \
+          -s ${{ secrets.NUGET_SERVER_URL }} \
+          -k ${{ secrets.NUGET_API_KEY }}
+          
+    - name: Cleanup
+      if: always()
+      continue-on-error: true
+      run: |
+       dotnet nuget remove source ${{ secrets.NUGET_SERVER_NAME }}
