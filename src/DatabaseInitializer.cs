@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace LifeManagers.Data;
+
 public class DatabaseInitializer<T>(IServiceProvider serviceProvider) where T : AppDbContextBase
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
@@ -28,28 +29,29 @@ public class DatabaseInitializer<T>(IServiceProvider serviceProvider) where T : 
         {
             StepExecuting?.Invoke(this, "Seeding database");
             await seeder.SeedRequiredDataAsync();
-#if DEBUG
-            await seeder.SeedDebugDataAsync();
-#endif // DEBUG
+
+            DataServicesOptions options = _serviceProvider.GetRequiredService<IOptions<DataServicesOptions>>().Value;
+            if (options.DebugMode)
+                await seeder.SeedDebugDataAsync();
         }
 
         PeriodicBackuper? backuper = _serviceProvider.GetService<PeriodicBackuper>();
         if (backuper is not null)
         {
-            StepExecuting?.Invoke(this, "Backing up database");
+            StepExecuting?.Invoke(this, "Performing periodic database backup");
             await backuper.PerformBackupIfNecessaryAsync();
         }
     }
 
     private void CreateDatabaseFileIfNotExist()
     {
-        DataServicesOptions options =  _serviceProvider.GetRequiredService<IOptions<DataServicesOptions>>().Value;
+        DataServicesOptions options = _serviceProvider.GetRequiredService<IOptions<DataServicesOptions>>().Value;
         string databasePath = Path.Combine(options.DataDirectoryPath, options.DatabaseFileName);
 
         if (File.Exists(databasePath))
             return;
 
-        File.Create(databasePath ).Close();
+        File.Create(databasePath).Close();
     }
 
     private T GetContext()

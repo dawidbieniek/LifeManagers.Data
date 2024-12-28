@@ -4,7 +4,7 @@ using LifeManagers.Data.Seeding;
 
 namespace LifeManagers.Data;
 
-public class DataServicesOptions
+public sealed class DataServicesOptions
 {
     internal const string DefaultDatabaseFileName = "data.db3";
     internal const string DefaultBackupDirectory = "backups";
@@ -17,16 +17,18 @@ public class DataServicesOptions
     public TimeSpan? BackupPeriod { get; set; } = null;
     public string BackupDirectory { get; set; } = DefaultBackupDirectory;
     public string LastBackupTimeFileName { get; set; } = DefaultLastBackupTimeFileName;
-    public Type? SeederType { get; set; }
+    public Type? SeederType { get; set; } = null;
+    public bool DebugMode { get; set; } = false;
 
-    public void CreateOptions(DataServicesOptions builtOptions)
+    internal void CreateOptions(DataServicesOptions builtOptions)
     {
-        DataDirectoryPath = builtOptions.DataDirectoryPath;
-        DatabaseFileName = builtOptions.DatabaseFileName;
-        BackupPeriod = builtOptions.BackupPeriod;
-        BackupDirectory = builtOptions.BackupDirectory;
-        LastBackupTimeFileName = builtOptions.LastBackupTimeFileName;
-        SeederType = builtOptions.SeederType;
+        Type? type = GetType();
+
+        foreach (var property in type.GetProperties())
+        {
+            if (property != null && property.CanWrite)
+                property.SetValue(this, property.GetValue(builtOptions));
+        }
     }
 }
 
@@ -54,6 +56,13 @@ public class DataServicesOptionsBuilder<T> where T : AppDbContextBase
     public DataServicesOptionsBuilder<T> WithSeeder<TSeeder>() where TSeeder : ISeeder<T>
     {
         _options.SeederType = typeof(TSeeder);
+
+        return this;
+    }
+
+    public DataServicesOptionsBuilder<T> UsingDebugMode(bool useDebugMode = true)
+    {
+        _options.DebugMode = useDebugMode;
 
         return this;
     }

@@ -18,13 +18,16 @@ public static class DependencyInjection
         services.AddOptions<DataServicesOptions>()
             .Configure(opt => opt.CreateOptions(options));
 
-        services
-            .AddDbContextFactory<T>((sp, opt) =>
+        services.AddDbContextFactory<T>((sp, opt) =>
             {
                 DataServicesOptions options = sp.GetRequiredService<IOptions<DataServicesOptions>>().Value;
+                if (options.DebugMode)
+                    opt.EnableSensitiveDataLogging();
+
                 opt.UseSqlite($"Filename={Path.Combine(options.DataDirectoryPath, options.DatabaseFileName)}");
-            })
-            .AddTransient<BackupManager>();
+            });
+
+        services.AddTransient<BackupManager>();
 
         if (options.BackupPeriod is not null)
             services.AddTransient<PeriodicBackuper>();

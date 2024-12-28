@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 
+using FluentAssertions;
+
 using LifeManagers.Data.Seeding;
 
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -47,6 +49,25 @@ namespace LifeManagers.Data.Tests
             Assert.AreEqual(typeof(TestSeeder), options.SeederType);
         }
 
+        [TestMethod]
+        public void CreateOptions_CopiesAllProperties()
+        {
+            DataServicesOptions target = new();
+            DataServicesOptions source = new()
+            {
+                BackupDirectory = "some backup directory",
+                BackupPeriod = TimeSpan.FromDays(365),
+                DatabaseFileName = "some database name",
+                DataDirectoryPath = "path that doesn't exist",
+                DebugMode = true,
+                LastBackupTimeFileName = "some filename",
+                SeederType = typeof(TestSeeder)
+            };
+
+            target.CreateOptions(source);
+
+            source.Should().BeEquivalentTo(target);
+        }
 
         private class TestSeeder : ISeeder<AppDbContextBase>
         {

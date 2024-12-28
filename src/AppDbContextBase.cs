@@ -4,12 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace LifeManagers.Data;
 
-public class AppDbContextBase(DbContextOptions options)
-#if DEBUG
-    : DbContext(new DbContextOptionsBuilder(options).EnableSensitiveDataLogging().Options)  // Display more info on exceptions
-#else
-    : DbContext(options)
-#endif
+public class AppDbContextBase(DbContextOptions options) : DbContext(options)
 {
     public async Task PerformNecessaryMigrationsAsync()
     {
