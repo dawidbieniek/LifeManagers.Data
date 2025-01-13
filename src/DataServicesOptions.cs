@@ -32,18 +32,18 @@ public sealed class DataServicesOptions
     }
 }
 
-public class DataServicesOptionsBuilder<T> where T : AppDbContextBase
+public class DataServicesOptionsBuilder
 {
     private readonly DataServicesOptions _options = new();
 
-    public DataServicesOptionsBuilder<T> WithDataDirectoryPath(string dataDirectoryPath, string databaseFileName = DataServicesOptions.DefaultDatabaseFileName)
+    public DataServicesOptionsBuilder WithDataDirectoryPath(string dataDirectoryPath, string databaseFileName = DataServicesOptions.DefaultDatabaseFileName)
     {
         _options.DataDirectoryPath = dataDirectoryPath;
         _options.DatabaseFileName = databaseFileName;
         return this;
     }
 
-    public DataServicesOptionsBuilder<T> EnablePeriodicBackups(TimeSpan period,
+    public DataServicesOptionsBuilder EnablePeriodicBackups(TimeSpan period,
         string backupDirectory = DataServicesOptions.DefaultBackupDirectory,
         string lastBackupFileName = DataServicesOptions.DefaultBackupDirectory)
     {
@@ -53,14 +53,16 @@ public class DataServicesOptionsBuilder<T> where T : AppDbContextBase
         return this;
     }
 
-    public DataServicesOptionsBuilder<T> WithSeeder<TSeeder>() where TSeeder : ISeeder<T>
+    public DataServicesOptionsBuilder WithSeeder<TDbContext, TSeeder>()
+        where TDbContext : AppDbContextBase
+        where TSeeder : ISeeder<TDbContext>
     {
         _options.SeederType = typeof(TSeeder);
 
         return this;
     }
 
-    public DataServicesOptionsBuilder<T> UsingDebugMode(bool useDebugMode = true)
+    public DataServicesOptionsBuilder UsingDebugMode(bool useDebugMode = true)
     {
         _options.DebugMode = useDebugMode;
 

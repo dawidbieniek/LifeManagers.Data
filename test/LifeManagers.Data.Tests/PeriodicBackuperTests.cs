@@ -7,58 +7,62 @@ namespace LifeManagers.Data.Tests;
 [TestClass]
 public class PeriodicBackuperTests
 {
-    private static readonly DataServicesOptions Options = new()
-    {
-        DataDirectoryPath = Path.GetTempPath(),
-        BackupPeriod = TimeSpan.FromDays(1)
-    };
-
-    [TestInitialize]
-    public void InitializeTests()
-    {
-        DeleteFiles(Options);
-        CreateDummyDatabaseFile(Options);
-    }
-
     [TestMethod]
     public async Task PerformBackupIfNecessary_CreatesCopyOfFile_ThereIsNoLastBackupFileAsync()
     {
-        IOptions<DataServicesOptions> optionsService = Microsoft.Extensions.Options.Options.Create(Options);
+        DataServicesOptions options = SetupTest();
+
+        IOptions<DataServicesOptions> optionsService = Microsoft.Extensions.Options.Options.Create(options);
         PeriodicBackuper backuper = new(new BackupManager(optionsService), optionsService);
 
         try
         {
             await backuper.PerformBackupIfNecessaryAsync();
 
-            Assert.IsTrue(Directory.GetFiles(Path.Combine(Options.DataDirectoryPath, Options.BackupDirectory)).Length > 0);
+            Assert.IsTrue(Directory.GetFiles(Path.Combine(options.DataDirectoryPath, options.BackupDirectory)).Length > 0);
         }
         finally
         {
-            DeleteFiles(Options);
+            DeleteFiles(options);
         }
     }
 
     [TestMethod]
     public async Task PerformBackupIfNecessary_CreatesCopyOfFile_ThereIsOldBackupAsync()
     {
-        IOptions<DataServicesOptions> optionsService = Microsoft.Extensions.Options.Options.Create(Options);
+        DataServicesOptions options = SetupTest();
+
+        IOptions<DataServicesOptions> optionsService = Microsoft.Extensions.Options.Options.Create(options);
         PeriodicBackuper backuper = new(new BackupManager(optionsService), optionsService);
 
         try
         {
-            WriteLastBackupDate(Options, DateTime.Today - TimeSpan.FromDays(2));
+            WriteLastBackupDate(options, DateTime.Today - TimeSpan.FromDays(2));
             await backuper.PerformBackupIfNecessaryAsync();
 
-            Assert.IsTrue(Directory.GetFiles(Path.Combine(Options.DataDirectoryPath, Options.BackupDirectory)).Length > 0);
+            Assert.IsTrue(Directory.GetFiles(Path.Combine(options.DataDirectoryPath, options.BackupDirectory)).Length > 0);
         }
         finally
         {
-            DeleteFiles(Options);
+            DeleteFiles(options);
         }
+    }
+
+    private static DataServicesOptions SetupTest()
+    {
+        DataServicesOptions options = new()
+        {
+            DataDirectoryPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString()),
+            BackupPeriod = TimeSpan.FromDays(1)
+        };
+
+        CreateDummyDatabaseFile(options);
+        return options;
     }
 
     private static void CreateDummyDatabaseFile(DataServicesOptions options)
     {
+        Directory.CreateDirectory(options.DataDirectoryPath);
         File.Create(Path.Combine(options.DataDirectoryPath, options.DatabaseFileName)).Close();
     }
 
@@ -77,5 +81,8 @@ public class PeriodicBackuperTests
         string backupsDirectory = Path.Combine(options.DataDirectoryPath, options.BackupDirectory);
         if (Directory.Exists(backupsDirectory))
             Directory.Delete(backupsDirectory, true);
+
+        if (Directory.Exists(options.DataDirectoryPath))
+            Directory.Delete(options.DataDirectoryPath);
     }
 }

@@ -17,7 +17,7 @@ namespace LifeManagers.Data.Tests
         [DataRow("")]
         public void Builder_ThrowsException_DataDirectoryPathIsInvalid(string? path)
         {
-            DataServicesOptionsBuilder<AppDbContextBase> builder = new();
+            DataServicesOptionsBuilder builder = new();
 
             if (path is not null)
                 builder.WithDataDirectoryPath(path);
@@ -29,7 +29,7 @@ namespace LifeManagers.Data.Tests
         public void Builder_ReturnsCorrectDataDirectoryPath_DataDirectoryPathIsSupplied()
         {
             string path = "somepath";
-            DataServicesOptionsBuilder<AppDbContextBase> builder = new();
+            DataServicesOptionsBuilder builder = new();
 
             builder.WithDataDirectoryPath(path);
 
@@ -40,10 +40,10 @@ namespace LifeManagers.Data.Tests
         [TestMethod]
         public void BuilderWithSeeder_CorrectyAddsSeederTypeToOptions()
         {
-            DataServicesOptionsBuilder<AppDbContextBase> builder = new();
+            DataServicesOptionsBuilder builder = new();
             builder.WithDataDirectoryPath("somepath");
 
-            builder.WithSeeder<TestSeeder>();
+            builder.WithSeeder<AppDbContextBase, TestSeeder>();
             DataServicesOptions options = builder.Build();
 
             Assert.AreEqual(typeof(TestSeeder), options.SeederType);
