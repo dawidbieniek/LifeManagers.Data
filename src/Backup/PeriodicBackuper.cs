@@ -2,12 +2,21 @@
 
 namespace LifeManagers.Data.Backup;
 
-internal class PeriodicBackuper(BackupManager backupManager, IOptions<DataServicesOptions> options)
+internal class PeriodicBackuper(IBackupManager backupManager, IOptions<DataServicesOptions> options) : IPeriodicBackuper
 {
-    private readonly BackupManager _backupManager = backupManager;
+    private readonly IBackupManager _backupManager = backupManager;
     private readonly string _backupDirectory = Path.Combine(options.Value.DataDirectoryPath, options.Value.BackupDirectory);
     private readonly string _backupLastTimeFilePath = Path.Combine(options.Value.DataDirectoryPath, options.Value.LastBackupTimeFileName);
     private readonly TimeSpan _backupPeriod = options.Value.BackupPeriod!.Value;
+
+    public async Task<DateTime?> GetLastBackupDateTimeAsync()
+    {
+        if (!File.Exists(_backupLastTimeFilePath))
+            return null;
+
+        string fileText = await File.ReadAllTextAsync(_backupLastTimeFilePath);
+        return DateTime.Parse(fileText);
+    }
 
     public async Task PerformBackupIfNecessaryAsync()
     {
@@ -23,19 +32,10 @@ internal class PeriodicBackuper(BackupManager backupManager, IOptions<DataServic
             await backupStream.CopyToAsync(saveFileStream);
         }
 
-        await SaveBackupTime();
+        await SaveBackupTimeAsync();
     }
 
-    private async Task<bool> IsBackupNecessary()
-    {
-        if (!File.Exists(_backupLastTimeFilePath))
-            return true;
+    private async Task<bool> IsBackupNecessary() => !File.Exists(_backupLastTimeFilePath) || DateTime.Now >= await GetLastBackupDateTimeAsync()! + _backupPeriod;
 
-        string fileText = await File.ReadAllTextAsync(_backupLastTimeFilePath);
-        DateTime lastBackupTime = DateTime.Parse(fileText);
-
-        return DateTime.Now >= lastBackupTime + _backupPeriod;
-    }
-
-    private Task SaveBackupTime() => File.WriteAllTextAsync(_backupLastTimeFilePath, DateTime.Now.ToString());
+    private Task SaveBackupTimeAsync() => File.WriteAllTextAsync(_backupLastTimeFilePath, DateTime.Now.ToString());
 }

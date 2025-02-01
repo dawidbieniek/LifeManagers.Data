@@ -14,11 +14,6 @@ public class AppDbContextBase(DbContextOptions options) : DbContext(options)
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        ApplyAllConfigurationsFromCurrentAssembly(modelBuilder);
-    }
-
-    private static void ApplyAllConfigurationsFromCurrentAssembly(ModelBuilder modelBuilder)
-    {
         modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
     }
 }

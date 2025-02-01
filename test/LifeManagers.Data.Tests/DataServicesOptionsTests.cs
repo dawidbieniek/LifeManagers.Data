@@ -1,11 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Runtime.CompilerServices;
 
 using FluentAssertions;
 
 using LifeManagers.Data.Seeding;
-
-using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace LifeManagers.Data.Tests
 {

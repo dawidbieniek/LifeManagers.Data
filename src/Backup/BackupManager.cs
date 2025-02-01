@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 
 namespace LifeManagers.Data.Backup;
 
-public class BackupManager(IOptions<DataServicesOptions> options)
+internal class BackupManager(IOptions<DataServicesOptions> options) : IBackupManager
 {
     private readonly string _databaseFilePath = Path.Combine(options.Value.DataDirectoryPath, options.Value.DatabaseFileName);
 

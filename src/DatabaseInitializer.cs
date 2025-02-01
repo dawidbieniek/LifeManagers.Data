@@ -1,17 +1,21 @@
 ﻿using LifeManagers.Data.Backup;
 using LifeManagers.Data.Seeding;
 
-using SQLitePCL;
-
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace LifeManagers.Data;
 
-public class DatabaseInitializer<T>(IServiceProvider serviceProvider) where T : AppDbContextBase
+public class DatabaseInitializer<T>(
+        IDbContextFactory<T> contextFactory,
+        ISeeder<T>? seeder,
+        IPeriodicBackuper? periodicBackuper,
+        IOptions<DataServicesOptions> options) : IDatabaseInitializer where T : AppDbContextBase
 {
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly IDbContextFactory<T> _contextFactory = contextFactory;
+    private readonly ISeeder<T>? _seeder = seeder;
+    private readonly IPeriodicBackuper? _periodicBackuper = periodicBackuper;
+    private readonly IOptions<DataServicesOptions> _options = options;
 
     public event EventHandler<string> StepExecuting = delegate { };
 
@@ -19,51 +23,36 @@ public class DatabaseInitializer<T>(IServiceProvider serviceProvider) where T : 
     {
         CreateDatabaseFileIfNotExist();
 
-        using T context = GetContext();
+        using T context = await _contextFactory.CreateDbContextAsync();
 
         StepExecuting?.Invoke(this, "Migrating database");
         await context.PerformNecessaryMigrationsAsync();
 
-        ISeeder<T>? seeder = _serviceProvider.GetService<ISeeder<T>>();
-        if (seeder is not null)
+        if (_seeder is not null)
         {
             StepExecuting?.Invoke(this, "Seeding database");
-            await seeder.SeedRequiredDataAsync();
+            await _seeder.SeedRequiredDataAsync();
 
-            DataServicesOptions options = _serviceProvider.GetRequiredService<IOptions<DataServicesOptions>>().Value;
+            DataServicesOptions options = _options.Value;
             if (options.DebugMode)
-                await seeder.SeedDebugDataAsync();
+                await _seeder.SeedDebugDataAsync();
         }
 
-        PeriodicBackuper? backuper = _serviceProvider.GetService<PeriodicBackuper>();
-        if (backuper is not null)
+        if (_periodicBackuper is not null)
         {
             StepExecuting?.Invoke(this, "Performing periodic database backup");
-            await backuper.PerformBackupIfNecessaryAsync();
+            await _periodicBackuper.PerformBackupIfNecessaryAsync();
         }
     }
 
     private void CreateDatabaseFileIfNotExist()
     {
-        DataServicesOptions options = _serviceProvider.GetRequiredService<IOptions<DataServicesOptions>>().Value;
+        DataServicesOptions options = _options.Value;
         string databasePath = Path.Combine(options.DataDirectoryPath, options.DatabaseFileName);
 
         if (File.Exists(databasePath))
             return;
 
         File.Create(databasePath).Close();
-    }
-
-    private T GetContext()
-    {
-        T context;
-
-        IDbContextFactory<T>? contextFactory = _serviceProvider.GetService<IDbContextFactory<T>>();
-        if (contextFactory is null)
-            context = _serviceProvider.GetService<T>() ?? throw new InvalidOperationException($"No context or factory is registered for type {typeof(T)}");
-        else
-            context = contextFactory.CreateDbContext();
-
-        return context;
     }
 }

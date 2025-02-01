@@ -54,10 +54,24 @@ public abstract class CrudService<TEntity, TContext>(IDbContextFactory<TContext>
         return entity;
     }
 
+    /// <summary>
+    /// Updates values of <paramref name="entity"/>
+    /// </summary>
+    /// <remarks> Doesn't update any related entities. For that use <see cref="UpdateWithRelatedEntities(TEntity)"/> </remarks>
     public async Task UpdateAsync(TEntity entity)
     {
         using TContext context = ContextFactory.CreateDbContext();
         context.Entry(entity).State = EntityState.Modified;
+        await context.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Updates values of <paramref name="entity"/> and all of its reachable related entities
+    /// </summary>
+    public async Task UpdateWithRelatedEntitiesAsync(TEntity entity)
+    {
+        using TContext context = ContextFactory.CreateDbContext();
+        context.Set<TEntity>().Update(entity);
         await context.SaveChangesAsync();
     }
 

@@ -13,13 +13,19 @@ public sealed class DataServicesOptions
     [Required]
     [MinLength(1)]
     public string DataDirectoryPath { get; set; } = null!;
+    [MinLength(1)]
     public string DatabaseFileName { get; set; } = DefaultDatabaseFileName;
     public TimeSpan? BackupPeriod { get; set; } = null;
+    [MinLength(1)]
     public string BackupDirectory { get; set; } = DefaultBackupDirectory;
+    [MinLength(1)]
     public string LastBackupTimeFileName { get; set; } = DefaultLastBackupTimeFileName;
     public Type? SeederType { get; set; } = null;
     public bool DebugMode { get; set; } = false;
 
+    /// <summary>
+    /// Sets all properties to the values from <paramref name="builtOptions"/>
+    /// </summary>
     internal void CreateOptions(DataServicesOptions builtOptions)
     {
         Type? type = GetType();
@@ -43,7 +49,8 @@ public class DataServicesOptionsBuilder
         return this;
     }
 
-    public DataServicesOptionsBuilder EnablePeriodicBackups(TimeSpan period,
+    public DataServicesOptionsBuilder EnablePeriodicBackups(
+        TimeSpan period,
         string backupDirectory = DataServicesOptions.DefaultBackupDirectory,
         string lastBackupFileName = DataServicesOptions.DefaultBackupDirectory)
     {
