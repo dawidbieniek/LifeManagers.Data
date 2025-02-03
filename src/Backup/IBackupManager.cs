@@ -8,7 +8,7 @@ public interface IBackupManager
     void ReplaceDatabaseFile(string sourceDatabaseFilePath);
 
     /// <summary>
-    /// Creates stream for reading of database file. Should be used for copying the database.
+    /// Creates copy of current database file in <paramref name="backupPath"/>
     /// </summary>
-    Stream CreateBackupStream();
+    void BackupDatabase(string backupPath);
 }

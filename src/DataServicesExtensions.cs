@@ -18,7 +18,8 @@ public static class DataServicesExtensions
         configureOptions(builder);
         DataServicesOptions options = builder.Build();
 
-        AddOptions(services, options);
+        services.AddOptions<DataServicesOptions>()
+                    .Configure(opt => opt.CreateOptions(options));
 
         services.AddDbContextFactory<T>(opt =>
         {
@@ -26,10 +27,12 @@ public static class DataServicesExtensions
             if (opts.DebugMode)
                 opt.EnableSensitiveDataLogging();
 
-            opt.UseSqlite($"Filename={Path.Combine(opts.DataDirectoryPath, opts.DatabaseFileName)}");
+            opt.UseSqlite($"Data Source={Path.Combine(opts.DataDirectoryPath, opts.DatabaseFileName)}");
         });
 
-        AddBackupServices(services, options);
+        services.AddTransient<IBackupManager, BackupManager<T>>();
+        if (options.BackupPeriod.HasValue)
+            services.AddTransient<IPeriodicBackuper, PeriodicBackuper>();
 
         if (options.SeederType != null)
             services.AddTransient(typeof(ISeeder<T>), options.SeederType);
@@ -42,36 +45,6 @@ public static class DataServicesExtensions
                 sp.GetService<IPeriodicBackuper>(),
                 sp.GetRequiredService<IOptions<DataServicesOptions>>());
         });
-
-        return services;
-    }
-
-    /// <summary>
-    /// Adds only backup services.
-    /// </summary>
-    /// <remarks> Don't use with <see cref="AddDataServices{T}(IServiceCollection, Action{DataServicesOptionsBuilder})"/> </remarks>
-    public static IServiceCollection AddBackupServices(this IServiceCollection services, Action<DataServicesOptionsBuilder> configureOptions)
-    {
-        DataServicesOptionsBuilder builder = new();
-        configureOptions(builder);
-        DataServicesOptions options = builder.Build();
-
-        AddOptions(services, options);
-
-        return services.AddBackupServices(options);
-    }
-
-    private static void AddOptions(IServiceCollection services, DataServicesOptions options)
-    {
-        services.AddOptions<DataServicesOptions>()
-                    .Configure(opt => opt.CreateOptions(options));
-    }
-
-    private static IServiceCollection AddBackupServices(this IServiceCollection services, DataServicesOptions options)
-    {
-        services.AddTransient<IBackupManager, BackupManager>();
-        if (options.BackupPeriod.HasValue)
-            services.AddTransient<IPeriodicBackuper, PeriodicBackuper>();
 
         return services;
     }

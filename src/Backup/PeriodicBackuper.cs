@@ -23,15 +23,7 @@ internal class PeriodicBackuper(IBackupManager backupManager, IOptions<DataServi
         if (!await IsBackupNecessary())
             return;
 
-        using (Stream backupStream = _backupManager.CreateBackupStream())
-        {
-            if (!Directory.Exists(_backupDirectory))
-                Directory.CreateDirectory(_backupDirectory);
-
-            using FileStream saveFileStream = File.Create(Path.Combine(_backupDirectory, $"{DateTime.Today.ToShortTimeString()}backup.db3"));
-            await backupStream.CopyToAsync(saveFileStream);
-        }
-
+        _backupManager.BackupDatabase(Path.Combine(_backupDirectory, $"{DateTime.Today.ToShortDateString()}-backup.db3"));
         await SaveBackupTimeAsync();
     }
 
